@@ -159,7 +159,7 @@ var yorumOlustur = function (req, res, gelenMekan) {
 };
 
 var sonPuanHesapla = function (gelenMekan) {
-  var i, yorumSayisi, ortalamPuan, toplamPuan;
+  var i, yorumSayisi, ortalamaPuan, toplamPuan;
   if (gelenMekan.yorumlar && gelenMekan.yorumlar.length > 0) {
     yorumSayisi = gelenMekan.yorumlar.length;
     toplamPuan = 0;
@@ -167,7 +167,7 @@ var sonPuanHesapla = function (gelenMekan) {
       toplamPuan = toplamPuan + gelenMekan.yorumlar[i].puan;
     }
     ortalamaPuan = Math.round(toplamPuan / yorumSayisi);
-    gelenMekan.puan = ortalamPuan;
+    gelenMekan.puan = ortalamaPuan;
     gelenMekan.save(function (hata) {
       if (hata) {
         console.log(hata);

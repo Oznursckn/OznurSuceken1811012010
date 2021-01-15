@@ -1,123 +1,173 @@
-var footer="Öznur Suçeken"
-const anaSayfa = function (req, res, next) {
-  res.render('mekanlar-liste', {
-    'baslik': 'Anasayfa',
-    'footer': footer,
-    'sayfaBaslik': {
-      'siteAd': 'Mekan32',
-      'aciklama': 'Isparta nın popüler mekanlarını keşfedin!'
+var express = require("express");
+var request = require('postman-request');
+const { parse } = require("postman-request/lib/cookies");
+
+var apiSecenekleri = {
+  sunucu : "http://localhost:3000",
+  apiYolu: '/api/mekanlar/'
+}
+
+var mesafeyiFormatla = function (mesafe) {
+  var yeniMesafe, birim;
+  if (mesafe > 1000) {
+    yeniMesafe = parseFloat(mesafe / 1000).toFixed(2);
+    birim = "km";
+  } else {
+    yeniMesafe =parseFloat(mesafe).toFixed(1);
+    birim = "m";
+  }
+  return yeniMesafe + birim;
+}
+
+var anasayfayiOlustur = function (req, res, cevap, mekanListesi) {
+  var mesaj;
+  if(!(mekanListesi instanceof Array)) {
+    mesaj = "API HATASI: Bir şeyler ters gitti";
+    mekanListesi =[];
+  } else {
+    if (!mekanListesi.length) {
+      mesaj = "Civarda herhangi bir mekan bulunamadı !";
+    }
+  }
+  res.render("mekanlar-liste", {
+    baslik: "Mekan32",
+    sayfaBaslik: {
+      siteAd: "Mekan32",
+      aciklama: "Isparta'nın popüler mekanlarını keşfedin!",
     },
-    'mekanlar': [
-      {
-        'ad': 'Starbucks',
-        'adres': 'Centrum Garden AVM',
-        'puan': '4',
-        'imkanlar': ['Kahve', 'Kurabiye', 'Pasta'],
-        'mesafe': '10km'
-      },
-      {
-
-        'ad': 'Karikatur Bi Kafe',
-        'adres': 'Isparta Carsi',
-        'puan': '3',
-        'imkanlar': ['Kahve', 'FastFood', 'Soguk Icecek', 'Tatlı'],
-        'mesafe': '15km'
-      },
-      {
-        'ad': 'Mackbear',
-        'adres': 'Iyas Park',
-        'puan': '4',
-        'imkanlar': ['Kahve', 'Tatlı', 'Soguk Icecek'],
-        'mesafe': '5km'
-      },
-      {
-        'ad': 'Gramofon',
-        'adres': 'Isparta Carsi',
-        'puan': '2',
-        'imkanlar': ['Kahve', 'FastFood', 'Kahvaltı'],
-        'mesafe': '15km'
-      },
-      {
-        'ad': 'Zeyrek',
-        'adres': 'Iyas Park',
-        'puan': '3',
-        'imkanlar': ['Kahve', 'Et', 'Soguk Icecek'],
-        'mesafe': '5km'
-      }
-    ],
-
-  })
-}
-const mekanBilgisi = function (req, res, next) {
-  res.render('mekan-detay',
-    {
-      'baslik': 'Mekan Bilgisi',
-      'footer': 'Öznur Suçeken 2020',
-      'sayfaBaslik': 'Starbucks',
-      'mekanBilgisi': {
-        'ad': 'Starbucks',
-        'adres': 'Centrum Garden',
-        'puan': 3,
-        'imkanlar': ['Kahve', 'Kurabiye', 'Pasta'],
-        'koordinatlar': {
-          'enlem': 37.781885,
-          'boylam': 30.566034
-
-        },
-        'saatler': [
-          {
-            'gunler': 'Pazartesi-Cuma',
-            'acilis': '7:00',
-            'kapanis': '23:00',
-            'kapali': false
-
-          },
-          {
-            'gunler': 'Cumartesi',
-            'acilis': '9:00',
-            'kapanis': '22:30',
-            'kapali': false
-
-          },
-          {
-            'gunler': 'Pazar',
-            'kapali': true
-          }
-        ],
-
-        'yorumlar': [
-          {
-            'yorumYapan': 'Öznur Suçeken',
-            'puan': 3,
-            'tarih': '1 Aralık 2020',
-            'yorumMetni': 'Sevdiğim her çeşit kahve vardı.İçeri girince hoş bir kahve kokusu karşılıyor sizi.'
-
-          },
-          {
-            'yorumYapan': 'Asım Sinan Yüksel',
-            'puan': 4,
-            'tarih': '27 Kasım 2020',
-            'yorumMetni': 'Kahveler mükemmel'
-          }
-
-        ],
-
-      },
-    })
-
-}
-
-
-const yorumEkle = function (req, res, next) {
-  res.render('yorum-ekle', {
-    title: 'Yorum Ekle',
-    'footer': 'Öznur Suçeken 2020',
-
+    mekanlar: mekanListesi,
+    mesaj: mesaj,
+    cevap: cevap,
   });
 }
+
+const anaSayfa = function(req,res) {
+  var istekSecenekleri = {
+    url: apiSecenekleri.sunucu + apiSecenekleri.apiYolu,
+    method: "GET",
+    json: {},
+    qs: {
+      enlem: req.query.enlem,
+      boylam: req.query.boylam,
+    },
+  }
+  request(istekSecenekleri,function (hata,cevap,mekanlar) {
+    var i, gelenMekanlar;
+    gelenMekanlar = mekanlar;
+    if (!hata && gelenMekanlar.length) {
+      for (i=0; i< gelenMekanlar.length; i++) {
+        gelenMekanlar[i].mesafe = mesafeyiFormatla(gelenMekanlar[i].mesafe);
+      }
+    }
+    anasayfayiOlustur(req,res,cevap,gelenMekanlar);
+  });
+}
+var detaySayfasiOlustur = function(req,res,mekanDetaylari) {
+  res.render("mekan-detay", {
+    baslik: mekanDetaylari.ad,
+    sayfaBaslik: mekanDetaylari.ad,
+    mekanBilgisi: mekanDetaylari,
+    
+  });
+}
+var hataGoster = function (req, res, durum) {
+  var baslik,icerik;
+  if ((durum==404)) {
+    baslik ="404, Sayfa Bulunamadı!";
+    icerik ="Kusura Bakma Sayfayı Bulamadık!";
+  } else {
+    baslik = durum + ", Bir şeyler ters gitti!";
+    icerik = "Ters giden bir şey var";
+  }
+  res.status(durum);
+  res.render("error", {
+    baslik: baslik,
+    icerik: icerik,
+  });
+};
+
+var mekanBilgisiGetir = function (req,res,callback) {
+  var istekSecenekleri;
+  istekSecenekleri = {
+    url : apiSecenekleri.sunucu + apiSecenekleri.apiYolu +req.params.mekanid,
+    method : "GET",
+    json: {} 
+  };
+  request(
+    istekSecenekleri,
+    function(hata, cevap, mekanDetaylari) {
+      var gelenMekan = mekanDetaylari;
+      if (cevap.statusCode == 200) {
+        gelenMekan.koordinatlar = {
+          enlem : mekanDetaylari.koordinatlar[0],
+          boylam : mekanDetaylari.koordinatlar[1]
+        };
+        callback(req, res, gelenMekan);
+      } else {
+        hataGoster(req, res, cevap.statusCode);
+      }
+    }
+  );
+};
+
+
+const mekanBilgisi = function (req, res, callback) {
+  mekanBilgisiGetir(req,res, function(req,res,cevap) {
+    detaySayfasiOlustur(req,res,cevap);
+  });
+};
+
+var yorumSayfasiOlustur = function (req,res, mekanBilgisi) {
+  res.render('yorum-ekle', { baslik: mekanBilgisi.ad+ 'Mekanına yorum ekle',
+    sayfaBaslik:mekanBilgisi.ad+ 'Mekanına yorum ekle',
+    hata: req.query.hata});
+};
+
+const yorumEkle = function (req, res) {
+  mekanBilgisiGetir(req, res, function(req, res, cevap) {
+    yorumSayfasiOlustur(req,res,cevap);
+  });
+  
+};
+
+const yorumumuEkle = function(req, res) {
+  var istekSecenekleri, gonderilenYorum,mekanid;
+  mekanid =req.params.mekanid;
+  gonderilenYorum = {
+    yorumYapan: req.body.name,
+    puan: parseInt(req.body.rating,10),
+    yorumMetni: req.body.review
+  };
+  istekSecenekleri = {
+    url: apiSecenekleri.sunucu+ apiSecenekleri.apiYolu+mekanid+'/yorumlar',
+    method: "POST",
+    json: gonderilenYorum
+  };
+  if (!gonderilenYorum.yorumYapan || !gonderilenYorum.puan || !gonderilenYorum.yorumMetni) {
+    res.redirect('/mekan/' + mekanid + '/yorum/yeni?hata=evet');
+  } else {
+    request(
+      istekSecenekleri,
+      function(hata,cevap,body) {
+        if (cevap.statusCode == 201) {
+          res.redirect('mekan/' +mekanid);
+        }
+        else if (cevap.statusCode ===400 && body.name === "ValidationError") {
+          res.redirect('/mekan/' + mekanid + '/yorum/yeni?hata=evet');
+        }
+        else {
+          hataGoster(req, res, cevap.statusCode);
+        }
+      }
+    );
+    
+  }
+
+};
 
 module.exports = {
   anaSayfa,
   mekanBilgisi,
-  yorumEkle
-}
+  yorumEkle,
+  yorumumuEkle
+};
