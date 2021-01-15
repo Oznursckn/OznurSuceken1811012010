@@ -3,7 +3,7 @@ var request = require('postman-request');
 const { parse } = require("postman-request/lib/cookies");
 
 var apiSecenekleri = {
-  sunucu : "http://localhost:3000",
+  sunucu : "https://oznursuceken1811012010.herokuapp.com",
   apiYolu: '/api/mekanlar/'
 }
 
